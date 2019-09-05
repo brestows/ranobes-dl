@@ -58,8 +58,9 @@ def getRanobesInfo(html):
 
 
 def main():
-    link = 'https://ranobes.com/ranobe/51243-main-character-hides-his-strength.html'
+    link = 'https://ranobes.com/ranobe/103094-the-legendary-mechanic.html'
     info = getRanobesInfo(get_html(link))
+    print(info)
     start_link = info['first_chapter']
     # while start_link:
 
