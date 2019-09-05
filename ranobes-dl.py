@@ -1,8 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
+from ebooklib import epub
+from tempfile import mkstemp, gettempdir
+import urllib.request
+import shutil
 import time
 
 site = 'https://ranobes.com'
+lang = 'ru'
+
 
 def get_html(url):
     '''
@@ -35,16 +41,16 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 
 def getRanobesInfo(html):
     info = {}
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, 'lxml')
     content = soup.find('div', id='dle-content')
     desc = content.find('div', {'class': 'text', 'itemprop': 'description'})
     title = content.find('h1', class_='title').next_element
     info['title'] = title
     poster_url = desc.find('a').get('href')
     info['poster_url'] = poster_url
-    autor = desc.find('div', {'class': 'b', 'itemprop': 'author'}).find('a').text
-    info['autor'] = autor
-    info['first_chapter'] = '{}{}'.format(site,desc.find('a', class_='btn').get('href'))
+    author = desc.find('div', {'class': 'b', 'itemprop': 'author'}).find('a').text
+    info['author'] = author
+    info['first_chapter'] = '{}{}'.format(site, desc.find('a', class_='btn').get('href'))
     for b in desc.find_all('div', class_='b'):
         if b.next_element == 'Год издания: ':
             info['year'] = b.find('a').text
@@ -57,13 +63,50 @@ def getRanobesInfo(html):
     return info
 
 
+def downloadCover(url):
+    fd, tmpFile = mkstemp(prefix='ranobes_', dir=gettempdir())
+    with urllib.request.urlopen(url) as response, open(tmpFile, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+    return tmpFile
+
+
+def generateChapter(html, num, lng='ru', ):
+    soup = BeautifulSoup(html, 'lxml')
+    title = soup.find('h1', {'class': 'title', 'itemprop': 'headline'}).next_element
+    text = soup.find('div', {'class': 'text', 'id': 'arrticle'})
+    [div.extract() for div in text.find_all('div')]
+    [s.extract() for s in text('script')]
+    next_chapter = soup.find('a', {'class': 'btn', 'id': 'next'})
+    chapter = epub.EpubHtml(title=title, file_name='{}.xhtml'.format(num), lang=lng)
+    chapter.set_content('<html><head></head><body>{}</body></html>'.format(text.contents))
+    if next_chapter:
+        return chapter, next_chapter.get('href')
+    else:
+        return chapter, None
+
 def main():
     link = 'https://ranobes.com/ranobe/103094-the-legendary-mechanic.html'
     info = getRanobesInfo(get_html(link))
-    print(info)
     start_link = info['first_chapter']
-    # while start_link:
+    book = epub.EpubBook()
+    cover = downloadCover(info['poster_url'])
+    book.set_cover("image.jpg", open(cover, 'rb').read())
+    book.set_identifier('sample123456')
+    book.set_title(info['title'])
+    book.set_language(lang)
+    book.add_author(info['author'])
+    num_chapter = 1
+    while start_link:
+        html = get_html(start_link)
+        chapter, start_link = generateChapter(html, num_chapter, lng=lang)
+        num_chapter += 1
+        book.add_item(chapter)
+        print('\rgenerate chapter {} is done!'.format(num_chapter), end='\r')
 
+    print()
+    # book.add_item(epub.EpubNcx())
+    # book.add_item(epub.EpubNav())
+    epub.write_epub('/tmp/test.epub', book, {})
     # items = list(range(0, 507))
     # l = len(items)
     # print('Обработано глав:')
