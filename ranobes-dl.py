@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
+site = 'https://ranobes.com'
 
 def get_html(url):
     '''
@@ -13,7 +14,6 @@ def get_html(url):
     return r.text
 
 
-# Print iterations progress
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """
     Call in a loop to create terminal progress bar
@@ -26,30 +26,49 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
         length      - Optional  : character length of bar (Int)
         fill        - Optional  : bar fill character (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = '{}{}'.format(fill * filledLength, '-' * (length - filledLength))
     print('\r{} |{}| {} из {} {}'.format(prefix, bar, iteration, total, suffix), end='\r')
-    # Print New Line on Complete
     if iteration == total:
         print()
 
 
+def getRanobesInfo(html):
+    info = {}
+    soup = BeautifulSoup(html, 'html.parser')
+    content = soup.find('div', id='dle-content')
+    desc = content.find('div', {'class': 'text', 'itemprop': 'description'})
+    title = content.find('h1', class_='title').next_element
+    info['title'] = title
+    poster_url = desc.find('a').get('href')
+    info['poster_url'] = poster_url
+    autor = desc.find('div', {'class': 'b', 'itemprop': 'author'}).find('a').text
+    info['autor'] = autor
+    info['first_chapter'] = '{}{}'.format(site,desc.find('a', class_='btn').get('href'))
+    for b in desc.find_all('div', class_='b'):
+        if b.next_element == 'Год издания: ':
+            info['year'] = b.find('a').text
+        if b.next_element == 'Количество глав: ':
+            info['chapters_org'] = b.find('a').text
+    genre = list()
+    for a in desc.find('div', class_='tag_list').find_all('a'):
+        genre.append(a.text)
+    info['genre'] = genre
+    return info
+
+
 def main():
     link = 'https://ranobes.com/ranobe/51243-main-character-hides-his-strength.html'
-    # A List of Items
-    items = list(range(0, 507))
-    l = len(items)
-    print('main')
+    info = getRanobesInfo(get_html(link))
+    start_link = info['first_chapter']
+    while start_link:
 
-    # Initial call to print 0% progress
-    # printProgressBar(0, l, prefix='Progress:', suffix='Complete', length=50)
-    print('Обработано глав:')
-    for i, item in enumerate(items):
-        # Do stuff...
-        time.sleep(0.1)
-        # Update Progress Bar
-        printProgressBar(i + 1, l, prefix='', suffix='завершено', length=50)
+    # items = list(range(0, 507))
+    # l = len(items)
+    # print('Обработано глав:')
+    # for i, item in enumerate(items):
+    #     time.sleep(0.1)
+    #     printProgressBar(i + 1, l, prefix='', suffix='завершено', length=50)
 
 
 if __name__ == '__main__':
