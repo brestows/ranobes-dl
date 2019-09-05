@@ -61,7 +61,7 @@ def main():
     link = 'https://ranobes.com/ranobe/51243-main-character-hides-his-strength.html'
     info = getRanobesInfo(get_html(link))
     start_link = info['first_chapter']
-    while start_link:
+    # while start_link:
 
     # items = list(range(0, 507))
     # l = len(items)
