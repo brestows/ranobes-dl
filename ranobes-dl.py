@@ -77,15 +77,16 @@ def generateChapter(html, num, lng='ru', ):
     [div.extract() for div in text.find_all('div')]
     [s.extract() for s in text('script')]
     next_chapter = soup.find('a', {'class': 'btn', 'id': 'next'})
-    chapter = epub.EpubHtml(title=title, file_name='{}.xhtml'.format(num), lang=lng)
-    chapter.set_content('<html><head></head><body>{}</body></html>'.format(text.contents))
+    # print(text)
+    chapter = epub.EpubHtml(title=title, file_name='{}.html'.format(num), lang=lng)
+    chapter.set_content('<html><head></head><body>{}</body></html>'.format(text))
     if next_chapter:
         return chapter, next_chapter.get('href')
     else:
         return chapter, None
 
 def main():
-    link = 'https://ranobes.com/ranobe/103094-the-legendary-mechanic.html'
+    link = 'https://ranobes.com/ranobe/52732-revolution-of-the-8th-class-mage.html'
     info = getRanobesInfo(get_html(link))
     start_link = info['first_chapter']
     book = epub.EpubBook()
@@ -96,17 +97,23 @@ def main():
     book.set_language(lang)
     book.add_author(info['author'])
     num_chapter = 1
+    lstChapter = ['nav']
+    navMap = list()
     while start_link:
         html = get_html(start_link)
         chapter, start_link = generateChapter(html, num_chapter, lng=lang)
-        num_chapter += 1
         book.add_item(chapter)
+        lstChapter.append(chapter)
+        navMap.append(epub.Link('{}.html'.format(num_chapter), chapter.title, 'intro'))
+        num_chapter += 1
         print('\rgenerate chapter {} is done!'.format(num_chapter), end='\r')
 
     print()
-    # book.add_item(epub.EpubNcx())
-    # book.add_item(epub.EpubNav())
-    epub.write_epub('/tmp/test.epub', book, {})
+    book.toc = navMap
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    book.spine = lstChapter
+    epub.write_epub('/tmp/{}.epub'.format(info['title']), book, {})
     # items = list(range(0, 507))
     # l = len(items)
     # print('Обработано глав:')
