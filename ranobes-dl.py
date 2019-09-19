@@ -86,7 +86,8 @@ def generateChapter(html, num, lng='ru', ):
         return chapter, None
 
 def main():
-    link = 'https://ranobes.com/ranobe/52732-revolution-of-the-8th-class-mage.html'
+    link = 'https://ranobes.com/ranobe/39855-the-book-eating-magician.html'
+
     info = getRanobesInfo(get_html(link))
     start_link = info['first_chapter']
     book = epub.EpubBook()
